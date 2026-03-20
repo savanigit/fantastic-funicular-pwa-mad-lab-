@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2E3AA1" />
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --surface: #ffffff;
+      --primary: #2E3AA1;
+      --secondary: #2C8CDF;
+      --text: #202a44;
+      --muted: #606f8a;
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(29, 86, 184, 0.13);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f4f8ff 100%);
+      color: var(--text);
+    }
+
+    .app-shell {
+      max-width: 640px;
+      margin: 2rem auto;
+      padding: 1.25rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+
+    h1 { margin-top: 0; }
+
+    .btn {
+      border: 0;
+      outline: 0;
+      background: linear-gradient(120deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 10px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s ease, opacity .2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); opacity: .95; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .pwa-icon {
+      width: 84px;
+      height: 84px;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .footer { margin-top: 1rem; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="card" aria-live="polite">
+      <img class="pwa-icon" src="icon.png" alt="App icon">
+      <h1>Simple PWA Example</h1>
+      <p>Install this app and use it offline with a fast caching service worker.</p>
+
+      <button id="installBtn" class="btn" hidden>Install App</button>
+      <p id="status" class="footer">Loading…</p>
+    </div>
+  </div>
+
+  <script>
+    // Service Worker registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+          .then(function(registration) {
+            console.log('ServiceWorker registered:', registration.scope);
+            document.getElementById('status').textContent = 'Service worker registered; app is ready.';
+          })
+          .catch(function(error) {
+            console.error('ServiceWorker registration failed:', error);
+            document.getElementById('status').textContent = 'Service worker failed. Offline available may not work.';
+          });
+      });
+    } else {
+      document.getElementById('status').textContent = 'Service workers are not supported in this browser.';
+    }
+
+    // Install prompt handling
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    const status = document.getElementById('status');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.hidden = false;
+      status.textContent = 'You can install this app for a better experience.';
+    });
+
+    installBtn.addEventListener('click', (e) => {
+      if (!deferredPrompt) return;
+      installBtn.disabled = true;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          status.textContent = 'Thanks for installing!';
+        } else {
+          status.textContent = 'Install canceled. It still works offline.';
+        }
+        deferredPrompt = null;
+        installBtn.hidden = true;
+        installBtn.disabled = false;
+      });
+    });
+
+    window.addEventListener('appinstalled', () => {
+      status.textContent = 'App installed successfully.';
+      installBtn.hidden = true;
+    });
+  </script>
+</body>
+</html>
